@@ -78,7 +78,7 @@ RC insert_record_from_file(
         }
       }
       break;
-      
+
       case DATES: {
         deserialize_stream.clear();  // 清理stream的状态，防止多次解析出现异常
         deserialize_stream.str(file_value);
@@ -91,7 +91,7 @@ RC insert_record_from_file(
         } else {
           record_values[i].set_date(date_value);
         }
-      }
+      } break;
 
       case FLOATS: {
         deserialize_stream.clear();

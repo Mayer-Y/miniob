@@ -14,35 +14,33 @@ See the Mulan PSL v2 for more details. */
 
 #include <utility>
 
-#include "common/log/log.h"
-#include "sql/expr/expression.h"
-#include "sql/operator/calc_logical_operator.h"
-#include "sql/operator/calc_physical_operator.h"
+#include "sql/optimizer/physical_plan_generator.h"
+#include "sql/operator/table_get_logical_operator.h"
+#include "sql/operator/table_scan_physical_operator.h"
+#include "sql/operator/index_scan_physical_operator.h"
+#include "sql/operator/predicate_logical_operator.h"
+#include "sql/operator/predicate_physical_operator.h"
+#include "sql/operator/project_logical_operator.h"
+#include "sql/operator/project_physical_operator.h"
+#include "sql/operator/insert_logical_operator.h"
+#include "sql/operator/insert_physical_operator.h"
 #include "sql/operator/delete_logical_operator.h"
 #include "sql/operator/delete_physical_operator.h"
 #include "sql/operator/update_logical_operator.h"
 #include "sql/operator/update_physical_operator.h"
 #include "sql/operator/explain_logical_operator.h"
 #include "sql/operator/explain_physical_operator.h"
-#include "sql/operator/index_scan_physical_operator.h"
-#include "sql/operator/insert_logical_operator.h"
-#include "sql/operator/insert_physical_operator.h"
 #include "sql/operator/join_logical_operator.h"
 #include "sql/operator/join_physical_operator.h"
-#include "sql/operator/predicate_logical_operator.h"
-#include "sql/operator/predicate_physical_operator.h"
-#include "sql/operator/project_logical_operator.h"
-#include "sql/operator/project_physical_operator.h"
-#include "sql/operator/table_get_logical_operator.h"
-#include "sql/operator/table_scan_physical_operator.h"
-#include "sql/optimizer/physical_plan_generator.h"
+#include "sql/operator/calc_logical_operator.h"
+#include "sql/operator/calc_physical_operator.h"
+#include "sql/expr/expression.h"
+#include "common/log/log.h"
 
 using namespace std;
 
 RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<PhysicalOperator> &oper)
 {
-  RC rc = RC::SUCCESS;
-
   switch (logical_operator.type()) {
     case LogicalOperatorType::CALC: {
       return create_plan(static_cast<CalcLogicalOperator &>(logical_operator), oper);
@@ -63,11 +61,9 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
     case LogicalOperatorType::INSERT: {
       return create_plan(static_cast<InsertLogicalOperator &>(logical_operator), oper);
     } break;
-
     case LogicalOperatorType::UPDATE: {
       return create_plan(static_cast<UpdateLogicalOperator &>(logical_operator), oper);
-    } break;
-
+    }
     case LogicalOperatorType::DELETE: {
       return create_plan(static_cast<DeleteLogicalOperator &>(logical_operator), oper);
     } break;
@@ -84,32 +80,9 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
       return RC::INVALID_ARGUMENT;
     }
   }
-  return rc;
-}
 
-RC PhysicalPlanGenerator::create_plan(UpdateLogicalOperator &update_oper, std::unique_ptr<PhysicalOperator> &oper)
-{
-  vector<unique_ptr<LogicalOperator>> &child_opers = update_oper.children();
-
-  unique_ptr<PhysicalOperator> child_physical_oper;
-
-  RC rc = RC::SUCCESS;
-  if (!child_opers.empty()) {
-    LogicalOperator *child_oper = child_opers.front().get();
-    rc                          = create(*child_oper, child_physical_oper);
-    if (rc != RC::SUCCESS) {
-      LOG_WARN("failed to create physical operator. rc=%s", strrc(rc));
-      return rc;
-    }
-  }
-
-  oper = unique_ptr<PhysicalOperator>(
-      new UpdatePhysicalOperator(update_oper.table(), update_oper.value(), update_oper.value_offset()));
-
-  if (child_physical_oper) {
-    oper->add_child(std::move(child_physical_oper));
-  }
-  return rc;
+  // This is impossible
+  assert(false);
 }
 
 RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, unique_ptr<PhysicalOperator> &oper)
@@ -123,7 +96,7 @@ RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, u
   for (auto &expr : predicates) {
     if (expr->type() == ExprType::COMPARISON) {
       auto comparison_expr = static_cast<ComparisonExpr *>(expr.get());
-      // 简单处理，就找等值查询
+      // 简单处理，仅找等值查询 (May be future expanded)
       if (comparison_expr->comp() != EQUAL_TO) {
         continue;
       }
@@ -161,7 +134,12 @@ RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, u
   if (index != nullptr) {
     ASSERT(value_expr != nullptr, "got an index but value expr is null ?");
 
-    const Value               &value           = value_expr->get_value();
+    const Value &value = value_expr->get_value();
+
+    if (value.attr_type() == DATES && value.get_date() == -1) {
+      return RC::INVALID_ARGUMENT;
+    }
+
     IndexScanPhysicalOperator *index_scan_oper = new IndexScanPhysicalOperator(
         table, index, table_get_oper.readonly(), &value, true /*left_inclusive*/, &value, true /*right_inclusive*/);
 
@@ -241,7 +219,30 @@ RC PhysicalPlanGenerator::create_plan(InsertLogicalOperator &insert_oper, unique
   oper.reset(insert_phy_oper);
   return RC::SUCCESS;
 }
+RC PhysicalPlanGenerator::create_plan(UpdateLogicalOperator &update_oper, std::unique_ptr<PhysicalOperator> &oper)
+{
+  vector<unique_ptr<LogicalOperator>> &child_opers = update_oper.children();
 
+  unique_ptr<PhysicalOperator> child_physical_oper;
+
+  RC rc = RC::SUCCESS;
+  if (!child_opers.empty()) {
+    LogicalOperator *child_oper = child_opers.front().get();
+    rc                          = create(*child_oper, child_physical_oper);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create physical operator. rc=%s", strrc(rc));
+      return rc;
+    }
+  }
+
+  oper = unique_ptr<PhysicalOperator>(
+      new UpdatePhysicalOperator(update_oper.table(), update_oper.value(), update_oper.value_offset()));
+
+  if (child_physical_oper) {
+    oper->add_child(std::move(child_physical_oper));
+  }
+  return rc;
+}
 RC PhysicalPlanGenerator::create_plan(DeleteLogicalOperator &delete_oper, unique_ptr<PhysicalOperator> &oper)
 {
   vector<unique_ptr<LogicalOperator>> &child_opers = delete_oper.children();
@@ -270,8 +271,7 @@ RC PhysicalPlanGenerator::create_plan(ExplainLogicalOperator &explain_oper, uniq
 {
   vector<unique_ptr<LogicalOperator>> &child_opers = explain_oper.children();
 
-  RC rc = RC::SUCCESS;
-
+  RC                           rc = RC::SUCCESS;
   unique_ptr<PhysicalOperator> explain_physical_oper(new ExplainPhysicalOperator);
   for (unique_ptr<LogicalOperator> &child_oper : child_opers) {
     unique_ptr<PhysicalOperator> child_physical_oper;
@@ -316,8 +316,7 @@ RC PhysicalPlanGenerator::create_plan(JoinLogicalOperator &join_oper, unique_ptr
 
 RC PhysicalPlanGenerator::create_plan(CalcLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper)
 {
-  RC rc = RC::SUCCESS;
-
+  RC                    rc        = RC::SUCCESS;
   CalcPhysicalOperator *calc_oper = new CalcPhysicalOperator(std::move(logical_oper.expressions()));
   oper.reset(calc_oper);
   return rc;

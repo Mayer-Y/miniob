@@ -17,17 +17,33 @@ See the Mulan PSL v2 for more details. */
 
 using namespace std;
 
+// RC FieldExpr::get_value(const Tuple &tuple, Value &value) const
+// {
+//   return tuple.find_cell(TupleCellSpec(table_name(), field_name()), value);
+// }
 RC FieldExpr::get_value(const Tuple &tuple, Value &value) const
 {
-  return tuple.find_cell(TupleCellSpec(table_name(), field_name()), value);
+  auto rc = tuple.find_cell(TupleCellSpec(table_name(), field_name()), value);
+  if (value.attr_type() == DATES && value.get_date() == -1) {
+    rc = RC::INVALID_ARGUMENT;
+  }
+  return rc;
 }
-
+// RC ValueExpr::get_value(const Tuple &tuple, Value &value) const
+// {
+//   value = value_;
+//   return RC::SUCCESS;
+// }
 RC ValueExpr::get_value(const Tuple &tuple, Value &value) const
 {
-  value = value_;
-  return RC::SUCCESS;
-}
+  if (value_.attr_type() == DATES && value_.get_date() == -1) {
+    return RC::INVALID_ARGUMENT;
+  } else {
+    value = value_;
 
+    return RC::SUCCESS;
+  }
+}
 /////////////////////////////////////////////////////////////////////////////////
 CastExpr::CastExpr(unique_ptr<Expression> child, AttrType cast_type) : child_(std::move(child)), cast_type_(cast_type)
 {}
@@ -85,6 +101,12 @@ ComparisonExpr::~ComparisonExpr() {}
 
 RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &result) const
 {
+  if (left.attr_type() == DATES && left.get_date() == -1) {
+    return RC::INVALID_ARGUMENT;
+  }
+  if (right.attr_type() == DATES && right.get_date() == -1) {
+    return RC::INVALID_ARGUMENT;
+  }
   RC  rc         = RC::SUCCESS;
   int cmp_result = left.compare(right);
   result         = false;

@@ -44,7 +44,13 @@ void SessionStage::handle_request(SessionEvent *sev)
   Session::set_current_session(sev->session());
   sev->session()->set_current_request(sev);
   SQLStageEvent sql_event(sev, sql);
-  (void)handle_sql(&sql_event);
+  //(void)handle_sql(&sql_event);
+
+  //(void)handle_sql(sev);
+  auto res = handle_sql(&sql_event);
+  if (res != RC::SUCCESS) {
+    sev->sql_result()->set_return_code(res);
+  }
 
   Communicator *communicator    = sev->get_communicator();
   bool          need_disconnect = false;

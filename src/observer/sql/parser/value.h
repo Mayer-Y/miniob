@@ -40,9 +40,13 @@ AttrType    attr_type_from_string(const char *s);
 class Value
 {
 public:
-  Value() = default;
-
-  Value(AttrType attr_type, char *data, int length = 4) : attr_type_(attr_type) { this->set_data(data, length); }
+  Value(AttrType attr_type, char *data, int length = 4) : attr_type_(attr_type)
+  {
+    if (attr_type == DATES)
+      this->set_date(data);
+    else
+      this->set_data(data, length);
+  }
 
   explicit Value(int val);
   explicit Value(float val);
@@ -50,18 +54,20 @@ public:
   explicit Value(const char *s, int len = 0);
   explicit Value(const char *date, int len, int flag);  // 日期类型加入flag用于区别string的构造函数
 
+  Value()                              = default;
   Value(const Value &other)            = default;
   Value &operator=(const Value &other) = default;
 
   void set_type(AttrType type) { this->attr_type_ = type; }
-  void set_data(char *data, int length);
   void set_data(const char *data, int length) { this->set_data(const_cast<char *>(data), length); }
+  void set_data(char *data, int length);
   void set_int(int val);
   void set_float(float val);
   void set_boolean(bool val);
   void set_string(const char *s, int len = 0);
   void set_value(const Value &value);
-  void set_date(int val);  // 日期类型的赋值
+  void set_date(int val);        // 日期类型的赋值
+  void set_date(const char *s);  // 日期类型的赋值
 
   std::string to_string() const;
 
@@ -85,7 +91,8 @@ public:
 
 private:
   AttrType attr_type_ = UNDEFINED;
-  int      length_    = 0;
+  // int      length_    = 0;
+  int length_{0};
 
   union
   {
