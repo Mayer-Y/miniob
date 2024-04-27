@@ -48,6 +48,7 @@ See the Mulan PSL v2 for more details. */
   DEFINE_RC(SCHEMA_FIELD_MISSING)        \
   DEFINE_RC(SCHEMA_FIELD_TYPE_MISMATCH)  \
   DEFINE_RC(SCHEMA_INDEX_NAME_REPEAT)    \
+  DEFINE_RC(SCHEMA_INDEX_NOT_EXIST)      \
   DEFINE_RC(IOERR_READ)                  \
   DEFINE_RC(IOERR_WRITE)                 \
   DEFINE_RC(IOERR_ACCESS)                \
@@ -56,6 +57,7 @@ See the Mulan PSL v2 for more details. */
   DEFINE_RC(IOERR_SEEK)                  \
   DEFINE_RC(IOERR_TOO_LONG)              \
   DEFINE_RC(IOERR_SYNC)                  \
+  DEFINE_RC(IOERR_UNLINK)                \
   DEFINE_RC(LOCKED_UNLOCK)               \
   DEFINE_RC(LOCKED_NEED_WAIT)            \
   DEFINE_RC(LOCKED_CONCURRENCY_CONFLICT) \

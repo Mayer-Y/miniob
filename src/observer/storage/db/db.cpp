@@ -106,6 +106,43 @@ RC Db::create_table(const char *table_name, int attribute_count, const AttrInfoS
   LOG_INFO("Create table success. table name=%s, table_id:%d", table_name, table_id);
   return RC::SUCCESS;
 }
+/*
+添加drop_table 接口
+*/
+// RC Db::drop_table(const char* table_name,)
+// {
+//   auto it = opened_tables_.find(table_name);
+// }
+RC Db::drop_table(const char *table_name)
+{
+
+  RC rc = RC::SUCCESS;
+
+  // 查看表是否存在
+  auto it = opened_tables_.find(table_name);
+  if (it == opened_tables_.end()) {
+    LOG_WARN("%s has not been opened before.", table_name);
+    return RC::SCHEMA_TABLE_NOT_EXIST;
+  }
+
+  Table *table = it->second;
+  table->drop_all_indexes();
+
+  delete table;
+  opened_tables_.erase(it);
+  auto table_file_name = table_data_file(path_.c_str(), table_name);
+  auto table_meta_name = table_meta_file(path_.c_str(), table_name);
+  if (unlink(table_file_name.c_str()) == -1) {
+    LOG_ERROR("Failed to delete table (%s) data file %s.", table_name, table_file_name.c_str());
+    return RC::IOERR_UNLINK;
+  }
+  if (unlink(table_meta_name.c_str()) == -1) {
+    LOG_ERROR("Failed to delete table (%s) data meta file %s.", table_name, table_meta_name.c_str());
+    return RC::IOERR_UNLINK;
+  }
+  return RC::SUCCESS;
+  return rc;
+}
 
 Table *Db::find_table(const char *table_name) const
 {

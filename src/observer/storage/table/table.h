@@ -83,6 +83,11 @@ public:
 
   RC get_record_scanner(RecordFileScanner &scanner, Trx *trx, bool readonly);
 
+  // 輔助函數
+  RC drop_index(const char *index_name);
+  RC drop_index(int idx);
+  RC drop_all_indexes();
+
   RecordFileHandler *record_handler() const { return record_handler_; }
 
 public:
@@ -111,3 +116,6 @@ private:
   RecordFileHandler   *record_handler_   = nullptr;  /// 记录操作
   std::vector<Index *> indexes_;
 };
+RC drop_index(const char *index_name);
+RC drop_index(int idx);
+RC drop_all_indexes();

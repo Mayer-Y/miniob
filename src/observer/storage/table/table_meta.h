@@ -39,6 +39,8 @@ public:
   RC init(int32_t table_id, const char *name, int field_num, const AttrInfoSqlNode attributes[]);
 
   RC add_index(const IndexMeta &index);
+  // 刪除索引
+  RC drop_index(const char *index_name);
 
 public:
   int32_t                       table_id() const { return table_id_; }
@@ -75,3 +77,5 @@ protected:
 
   int record_size_ = 0;
 };
+
+RC drop_index(const char *index_name);

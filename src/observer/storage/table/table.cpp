@@ -505,3 +505,65 @@ RC Table::sync()
   LOG_INFO("Sync table over. table=%s", name());
   return rc;
 }
+RC Table::drop_index(int idx)
+{
+  assert(idx < (int)indexes_.size());
+  string index_name = indexes_[idx]->index_meta().name();
+  // 这里的析构函数会把所有buffer里相关的page都刷下去
+  delete indexes_[idx];
+  indexes_.erase(indexes_.begin() + idx);
+  auto index_file_name = table_index_file(base_dir_.c_str(), name(), index_name.c_str());
+  if (unlink(index_file_name.c_str()) < 0) {
+    LOG_ERROR("failed to remove index file %s while droping index (%s) on table (%s). error=%d:%s",
+              index_file_name.c_str(), index_name.c_str(), name(), errno, strerror(errno));
+    return RC::IOERR_UNLINK;
+  }
+  return RC::SUCCESS;
+}
+
+RC Table::drop_index(const char *index_name)
+{
+  TableMeta new_table_meta(table_meta());
+  RC        rc = new_table_meta.drop_index(index_name);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to drop index (%s) on table(%s). error=%d:%s", index_name, name(), rc, strrc(rc));
+    return rc;
+  }
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to edit meta file while droping index (%s) on table (%s). error=%d:%s", index_name, name(), rc,
+              strrc(rc));
+    return rc;
+  }
+  for (int i = 0; i < (int)indexes_.size(); i++) {
+    if (strcmp(indexes_[i]->index_meta().name(), index_name) == 0) {
+      return drop_index(i);
+    }
+  }
+  return RC::SCHEMA_INDEX_NOT_EXIST;
+}
+
+RC Table::drop_all_indexes()
+{
+  TableMeta new_table_meta(table_meta());
+  RC        rc = RC::SUCCESS;
+  for (int i = static_cast<int>(indexes_.size()) - 1; i >= 0; i--) {
+    rc = new_table_meta.drop_index(indexes_[i]->index_meta().name());
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to drop index (%s) on table(%s). error=%d:%s", indexes_[i]->index_meta().name(), name(), rc,
+                strrc(rc));
+      return rc;
+    }
+  }
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to edit meta file while droping all index on table (%s). error=%d:%s", name(), rc, strrc(rc));
+    return rc;
+  }
+  for (int i = static_cast<int>(indexes_.size()) - 1; i >= 0; i--) {
+    rc = drop_index(i);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to drop index %d while droping all index on table (%s). error=%d:%s", i, name(), rc, strrc(rc));
+      return rc;
+    }
+  }
+  return RC::SUCCESS;
+}
