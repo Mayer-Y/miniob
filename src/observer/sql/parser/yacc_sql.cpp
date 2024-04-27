@@ -3615,7 +3615,7 @@ yyreduce:
     case 85: /* comp_op: LIKE  */
 #line 644 "yacc_sql.y"
     {
-      //(yyval.comp) = LIKE_OP;
+      (yyval.comp) = NOT_EQUAL;
     }
 #line 2368 "yacc_sql.cpp"
     break;
@@ -3623,7 +3623,7 @@ yyreduce:
     case 86: /* comp_op: NOT LIKE  */
 #line 645 "yacc_sql.y"
     {
-     // (yyval.comp) = NOT_LIKE_OP;
+      (yyval.comp) = NOT_EQUAL;
     }
 #line 2374 "yacc_sql.cpp"
     break;

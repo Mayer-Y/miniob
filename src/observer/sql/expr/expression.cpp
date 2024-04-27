@@ -17,10 +17,6 @@ See the Mulan PSL v2 for more details. */
 
 using namespace std;
 
-// RC FieldExpr::get_value(const Tuple &tuple, Value &value) const
-// {
-//   return tuple.find_cell(TupleCellSpec(table_name(), field_name()), value);
-// }
 RC FieldExpr::get_value(const Tuple &tuple, Value &value) const
 {
   auto rc = tuple.find_cell(TupleCellSpec(table_name(), field_name()), value);
@@ -29,21 +25,17 @@ RC FieldExpr::get_value(const Tuple &tuple, Value &value) const
   }
   return rc;
 }
-// RC ValueExpr::get_value(const Tuple &tuple, Value &value) const
-// {
-//   value = value_;
-//   return RC::SUCCESS;
-// }
+
 RC ValueExpr::get_value(const Tuple &tuple, Value &value) const
 {
   if (value_.attr_type() == DATES && value_.get_date() == -1) {
     return RC::INVALID_ARGUMENT;
   } else {
     value = value_;
-
     return RC::SUCCESS;
   }
 }
+
 /////////////////////////////////////////////////////////////////////////////////
 CastExpr::CastExpr(unique_ptr<Expression> child, AttrType cast_type) : child_(std::move(child)), cast_type_(cast_type)
 {}
@@ -107,6 +99,7 @@ RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &re
   if (right.attr_type() == DATES && right.get_date() == -1) {
     return RC::INVALID_ARGUMENT;
   }
+
   RC  rc         = RC::SUCCESS;
   int cmp_result = left.compare(right);
   result         = false;
@@ -129,6 +122,13 @@ RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &re
     case GREAT_THAN: {
       result = (cmp_result > 0);
     } break;
+    // case LIKE_OP: {
+    //   rc = left.like(right, result);
+    // } break;
+    // case NOT_LIKE_OP: {
+    //   rc     = left.like(right, result);
+    //   result = !result;
+    // } break;
     default: {
       LOG_WARN("unsupported comparison. %d", comp_);
       rc = RC::INTERNAL;
@@ -176,8 +176,7 @@ RC ComparisonExpr::get_value(const Tuple &tuple, Value &value) const
   }
 
   bool bool_value = false;
-
-  rc = compare_value(left_value, right_value, bool_value);
+  rc              = compare_value(left_value, right_value, bool_value);
   if (rc == RC::SUCCESS) {
     value.set_boolean(bool_value);
   }

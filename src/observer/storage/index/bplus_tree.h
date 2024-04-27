@@ -17,17 +17,17 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <string.h>
+#include <sstream>
 #include <functional>
 #include <memory>
-#include <sstream>
-#include <string.h>
 
+#include "storage/record/record_manager.h"
+#include "storage/buffer/disk_buffer_pool.h"
+#include "storage/trx/latch_memo.h"
+#include "sql/parser/parse_defs.h"
 #include "common/lang/comparator.h"
 #include "common/log/log.h"
-#include "sql/parser/parse_defs.h"
-#include "storage/buffer/disk_buffer_pool.h"
-#include "storage/record/record_manager.h"
-#include "storage/trx/latch_memo.h"
 
 /**
  * @brief B+树的实现
@@ -73,7 +73,7 @@ public:
         return common::compare_string((void *)v1, attr_length_, (void *)v2, attr_length_);
       }
       case DATES: {
-        return common::compare_date((void *)v1, (void *)v2);
+        return common::compare_int((void *)v1, (void *)v2);
       }
       default: {
         ASSERT(false, "unknown attr type. %d", attr_type_);
@@ -133,7 +133,8 @@ public:
   std::string operator()(const char *v) const
   {
     switch (attr_type_) {
-      case INTS: {
+      case INTS:
+      case DATES: {
         return std::to_string(*(int *)v);
       } break;
       case FLOATS: {
@@ -148,9 +149,6 @@ public:
           str.push_back(v[i]);
         }
         return str;
-      }
-      case DATES: {
-        return std::to_string(*(int *)v);
       }
       default: {
         ASSERT(false, "unknown attr type. %d", attr_type_);

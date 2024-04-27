@@ -42,17 +42,18 @@ class Value
 public:
   Value(AttrType attr_type, char *data, int length = 4) : attr_type_(attr_type)
   {
-    if (attr_type == DATES)
+    if (attr_type == DATES) {
       this->set_date(data);
-    else
+    } else {
       this->set_data(data, length);
+    }
   }
 
   explicit Value(int val);
   explicit Value(float val);
   explicit Value(bool val);
   explicit Value(const char *s, int len = 0);
-  explicit Value(const char *date, int len, int flag);  // 日期类型加入flag用于区别string的构造函数
+  //explicit Value(const char *date, int len, int flag);  // 日期类型加入flag用于区别string的构造函数
 
   Value()                              = default;
   Value(const Value &other)            = default;
@@ -68,6 +69,7 @@ public:
   void set_value(const Value &value);
   void set_date(int val);        // 日期类型的赋值
   void set_date(const char *s);  // 日期类型的赋值
+  
 
   std::string to_string() const;
 
