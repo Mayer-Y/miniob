@@ -132,7 +132,8 @@ void Value::set_value(const Value &value)
     } break;
     case DATES: {
       set_date(value.get_date());
-    } break;
+      break;
+    }
     case UNDEFINED: {
       ASSERT(false, "got an invalid value type");
     } break;
@@ -337,7 +338,7 @@ bool Value::get_boolean() const
     } break;
     case DATES: {
       std::cout << "failed to convert date to boolean.\n" << std::endl;
-    }//
+    }  //
     default: {
       LOG_WARN("unknown data type. type=%d", attr_type_);
       return false;
@@ -347,7 +348,7 @@ bool Value::get_boolean() const
 }
 
 // 判断闰年
-bool is_leap_year(int year) { return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0); }
+bool is_leap_year(int year) { return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0; }
 // str日期转int
 void strDate2intDate(const char *strDate, int &intDate)
 {
